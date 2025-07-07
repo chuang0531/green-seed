@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
@@ -509,254 +510,249 @@
         </div>
     </div>
     
-    <script>
-        // 數據存儲
-        let users = [];
-        let records = [];
-        let currentUser = null;
-        let filteredUsers = [];
-        
-        // 頁面切換
-        function showScreen(screenId) {
-            document.querySelectorAll('.screen').forEach(screen => {
-                screen.classList.remove('active');
-            });
-            document.getElementById(screenId).classList.add('active');
-            
-            if (screenId === 'home-screen') {
-                updateStats();
-                renderUserList();
-            }
-        }
-        
-        // 切換新增客戶表單
-        function toggleAddForm() {
-            const form = document.getElementById('add-user-form');
-            form.style.display = form.style.display === 'none' ? 'block' : 'none';
-            if (form.style.display === 'block') {
-                document.getElementById('name').focus();
-            }
-        }
-        
-        // 更新統計數據
-        function updateStats() {
-            const today = new Date().toISOString().split('T')[0];
-            const todayRecords = records.filter(r => r.date === today).length;
-            
-            document.getElementById('total-users').textContent = users.length;
-            document.getElementById('today-records').textContent = todayRecords;
-            document.getElementById('total-records').textContent = records.length;
-        }
-        
-        // 新增客戶
-        document.getElementById('user-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const formData = new FormData(e.target);
-            const userData = {
-                id: Date.now(),
-                name: formData.get('name'),
-                gender: formData.get('gender'),
-                height: parseInt(formData.get('height')),
-                age: parseInt(formData.get('age')),
-                createdAt: new Date().toLocaleDateString('zh-TW')
-            };
-            
-            users.push(userData);
-            e.target.reset();
-            toggleAddForm();
-            
+   <script>
+    // 數據存儲
+    let users = [];
+    let records = [];
+    let currentUser = null;
+    let filteredUsers = [];
+
+    function saveData() {
+        localStorage.setItem('users', JSON.stringify(users));
+        localStorage.setItem('records', JSON.stringify(records));
+    }
+
+    function loadData() {
+        const storedUsers = localStorage.getItem('users');
+        const storedRecords = localStorage.getItem('records');
+        if (storedUsers) users = JSON.parse(storedUsers);
+        if (storedRecords) records = JSON.parse(storedRecords);
+    }
+
+    function showScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(screen => {
+            screen.classList.remove('active');
+        });
+        document.getElementById(screenId).classList.add('active');
+
+        if (screenId === 'home-screen') {
             updateStats();
             renderUserList();
-            
-            // 顯示成功訊息
-            alert('客戶新增成功！');
-        });
-        
-        // 搜尋客戶
-        document.getElementById('search-users').addEventListener('input', function(e) {
-            const searchTerm = e.target.value.toLowerCase();
-            filteredUsers = users.filter(user => 
-                user.name.toLowerCase().includes(searchTerm)
-            );
-            renderUserList();
-        });
-        
-        // 渲染客戶列表
-        function renderUserList() {
-            const userList = document.getElementById('user-list');
-            const displayUsers = filteredUsers.length > 0 || document.getElementById('search-users').value ? filteredUsers : users;
-            
-            if (displayUsers.length === 0) {
-                userList.innerHTML = `
-                    <div class="empty-state">
-                        <h3>🔍 ${document.getElementById('search-users').value ? '找不到符合的客戶' : '尚未新增任何客戶'}</h3>
-                        <p>${document.getElementById('search-users').value ? '請嘗試其他搜尋關鍵字' : '點擊上方「新增客戶」按鈕開始使用'}</p>
+        }
+    }
+
+    function toggleAddForm() {
+        const form = document.getElementById('add-user-form');
+        form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        if (form.style.display === 'block') {
+            document.getElementById('name').focus();
+        }
+    }
+
+    function updateStats() {
+        const today = new Date().toISOString().split('T')[0];
+        const todayRecords = records.filter(r => r.date === today).length;
+
+        document.getElementById('total-users').textContent = users.length;
+        document.getElementById('today-records').textContent = todayRecords;
+        document.getElementById('total-records').textContent = records.length;
+    }
+
+    document.getElementById('user-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const formData = new FormData(e.target);
+        const userData = {
+            id: Date.now(),
+            name: formData.get('name'),
+            gender: formData.get('gender'),
+            height: parseInt(formData.get('height')),
+            age: parseInt(formData.get('age')),
+            createdAt: new Date().toLocaleDateString('zh-TW')
+        };
+
+        users.push(userData);
+        saveData();
+
+        e.target.reset();
+        toggleAddForm();
+        updateStats();
+        renderUserList();
+
+        alert('客戶新增成功！');
+    });
+
+    document.getElementById('search-users').addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase();
+        filteredUsers = users.filter(user => 
+            user.name.toLowerCase().includes(searchTerm)
+        );
+        renderUserList();
+    });
+
+    function renderUserList() {
+        const userList = document.getElementById('user-list');
+        const displayUsers = filteredUsers.length > 0 || document.getElementById('search-users').value ? filteredUsers : users;
+
+        if (displayUsers.length === 0) {
+            userList.innerHTML = `
+                <div class="empty-state">
+                    <h3>🔍 找不到符合的客戶</h3>
+                    <p>請嘗試其他搜尋關鍵字</p>
+                </div>
+            `;
+            return;
+        }
+
+        userList.innerHTML = displayUsers.map(user => {
+            const userRecords = records.filter(r => r.userId === user.id);
+            const latestRecord = userRecords.sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+
+            return `
+                <div class="user-card" onclick="selectUser(${user.id})">
+                    <div class="user-actions">
+                        <button onclick="event.stopPropagation(); editUser(${user.id})">✏️</button>
+                        <button onclick="event.stopPropagation(); deleteUser(${user.id})">🗑️</button>
                     </div>
-                `;
+                    <h3>${user.name}</h3>
+                    <p>👤 ${user.gender === 'male' ? '男性' : '女性'} | 🎂 ${user.age}歲 | 📏 ${user.height}cm</p>
+                    <p>📅 建立於: ${user.createdAt}</p>
+                    <div class="user-stats">
+                        <p>📊 記錄次數: ${userRecords.length}</p>
+                        ${latestRecord ? `<p>⏰ 最後記錄: ${latestRecord.date}</p>` : ''}
+                        ${latestRecord && latestRecord.weight ? `<p>⚖️ 最新體重: ${latestRecord.weight}kg</p>` : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function selectUser(userId) {
+        currentUser = users.find(u => u.id === userId);
+        document.getElementById('user-info').innerHTML = `
+            <h2>📊 ${currentUser.name} 的數據記錄</h2>
+            <p>👤 ${currentUser.gender === 'male' ? '男性' : '女性'} | 🎂 ${currentUser.age}歲 | 📏 ${currentUser.height}cm</p>
+        `;
+
+        document.getElementById('record-date').value = new Date().toISOString().split('T')[0];
+        showScreen('data-entry-screen');
+    }
+
+    function deleteUser(userId) {
+        if (confirm('確定要刪除此客戶？這將同時刪除所有相關記錄。')) {
+            users = users.filter(u => u.id !== userId);
+            records = records.filter(r => r.userId !== userId);
+            saveData();
+            updateStats();
+            renderUserList();
+        }
+    }
+
+    function editUser(userId) {
+        const user = users.find(u => u.id === userId);
+        const newName = prompt('修改姓名:', user.name);
+        if (newName && newName.trim()) {
+            user.name = newName.trim();
+            saveData();
+            renderUserList();
+        }
+    }
+
+    document.getElementById('data-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const formData = new FormData(e.target);
+        const recordData = {
+            id: Date.now(),
+            userId: currentUser.id,
+            date: formData.get('date'),
+            weight: parseFloat(formData.get('weight')) || null,
+            bmi: parseFloat(formData.get('bmi')) || null,
+            muscleMass: parseFloat(formData.get('muscleMass')) || null,
+            bodyFat: parseFloat(formData.get('bodyFat')) || null,
+            boneMass: parseFloat(formData.get('boneMass')) || null,
+            bodyAge: parseInt(formData.get('bodyAge')) || null,
+            metabolism: parseInt(formData.get('metabolism')) || null,
+            visceralFat: parseFloat(formData.get('visceralFat')) || null,
+            bodyWater: parseFloat(formData.get('bodyWater')) || null,
+            createdAt: new Date().toLocaleString('zh-TW')
+        };
+
+        const existingIndex = records.findIndex(r => r.userId === currentUser.id && r.date === recordData.date);
+        if (existingIndex !== -1) {
+            if (confirm('此日期已有記錄，是否要覆蓋？')) {
+                records[existingIndex] = recordData;
+            } else {
                 return;
             }
-            
-            userList.innerHTML = displayUsers.map(user => {
-                const userRecords = records.filter(r => r.userId === user.id);
-                const latestRecord = userRecords.sort((a, b) => new Date(b.date) - new Date(a.date))[0];
-                
-                return `
-                    <div class="user-card" onclick="selectUser(${user.id})">
-                        <div class="user-actions">
-                            <button onclick="event.stopPropagation(); editUser(${user.id})">✏️</button>
-                            <button onclick="event.stopPropagation(); deleteUser(${user.id})">🗑️</button>
-                        </div>
-                        <h3>${user.name}</h3>
-                        <p>👤 ${user.gender === 'male' ? '男性' : '女性'} | 🎂 ${user.age}歲 | 📏 ${user.height}cm</p>
-                        <p>📅 建立於: ${user.createdAt}</p>
-                        <div class="user-stats">
-                            <p>📊 記錄次數: ${userRecords.length}</p>
-                            ${latestRecord ? `<p>⏰ 最後記錄: ${latestRecord.date}</p>` : ''}
-                            ${latestRecord && latestRecord.weight ? `<p>⚖️ 最新體重: ${latestRecord.weight}kg</p>` : ''}
-                        </div>
+        } else {
+            records.push(recordData);
+        }
+
+        saveData();
+
+        const successMessage = document.getElementById('success-message');
+        successMessage.innerHTML = `✅ 數據已成功儲存！記錄日期: ${recordData.date}`;
+        successMessage.style.display = 'block';
+
+        e.target.reset();
+        document.getElementById('record-date').value = new Date().toISOString().split('T')[0];
+
+        setTimeout(() => {
+            successMessage.style.display = 'none';
+        }, 3000);
+    });
+
+    function showRecords() {
+        const recordsSection = document.getElementById('records-section');
+        const recordsList = document.getElementById('records-list');
+
+        const userRecords = records.filter(r => r.userId === currentUser.id)
+                                 .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        if (userRecords.length === 0) {
+            recordsList.innerHTML = '<p style="color: #666;">尚無記錄數據。</p>';
+        } else {
+            recordsList.innerHTML = userRecords.map(record => `
+                <div class="record-item">
+                    <div class="record-actions">
+                        <button class="btn btn-small btn-danger" onclick="deleteRecord(${record.id})">🗑️</button>
                     </div>
-                `;
-            }).join('');
-        }
-        
-        // 選擇客戶
-        function selectUser(userId) {
-            currentUser = users.find(u => u.id === userId);
-            document.getElementById('user-info').innerHTML = `
-                <h2>📊 ${currentUser.name} 的數據記錄</h2>
-                <p>👤 ${currentUser.gender === 'male' ? '男性' : '女性'} | 🎂 ${currentUser.age}歲 | 📏 ${currentUser.height}cm</p>
-            `;
-            
-            // 設置今天的日期
-            document.getElementById('record-date').value = new Date().toISOString().split('T')[0];
-            
-            showScreen('data-entry-screen');
-        }
-        
-        // 刪除客戶
-        function deleteUser(userId) {
-            if (confirm('確定要刪除此客戶？這將同時刪除所有相關記錄。')) {
-                users = users.filter(u => u.id !== userId);
-                records = records.filter(r => r.userId !== userId);
-                updateStats();
-                renderUserList();
-            }
-        }
-        
-        // 編輯客戶
-        function editUser(userId) {
-            const user = users.find(u => u.id === userId);
-            const newName = prompt('修改姓名:', user.name);
-            if (newName && newName.trim()) {
-                user.name = newName.trim();
-                renderUserList();
-            }
-        }
-        
-        
-        
-        // 儲存數據
-        document.getElementById('data-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const formData = new FormData(e.target);
-            const recordData = {
-                id: Date.now(),
-                userId: currentUser.id,
-                date: formData.get('date'),
-                weight: parseFloat(formData.get('weight')) || null,
-                bmi: parseFloat(formData.get('bmi')) || null,
-                muscleMass: parseFloat(formData.get('muscleMass')) || null,
-                bodyFat: parseFloat(formData.get('bodyFat')) || null,
-                boneMass: parseFloat(formData.get('boneMass')) || null,
-                bodyAge: parseInt(formData.get('bodyAge')) || null,
-                metabolism: parseInt(formData.get('metabolism')) || null,
-                visceralFat: parseFloat(formData.get('visceralFat')) || null,
-                bodyWater: parseFloat(formData.get('bodyWater')) || null,
-                createdAt: new Date().toLocaleString('zh-TW')
-            };
-            
-            // 檢查是否已有同日期記錄
-            const existingIndex = records.findIndex(r => r.userId === currentUser.id && r.date === recordData.date);
-            if (existingIndex !== -1) {
-                if (confirm('此日期已有記錄，是否要覆蓋？')) {
-                    records[existingIndex] = recordData;
-                } else {
-                    return;
-                }
-            } else {
-                records.push(recordData);
-            }
-            
-            // 顯示成功訊息
-            const successMessage = document.getElementById('success-message');
-            successMessage.innerHTML = `✅ 數據已成功儲存！記錄日期: ${recordData.date}`;
-            successMessage.style.display = 'block';
-            
-            // 清空表單
-            e.target.reset();
-            document.getElementById('record-date').value = new Date().toISOString().split('T')[0];
-            
-            // 3秒後隱藏成功訊息
-            setTimeout(() => {
-                successMessage.style.display = 'none';
-            }, 3000);
-        });
-        
-        // 查看記錄
-        function showRecords() {
-            const recordsSection = document.getElementById('records-section');
-            const recordsList = document.getElementById('records-list');
-            
-            const userRecords = records.filter(r => r.userId === currentUser.id)
-                                     .sort((a, b) => new Date(b.date) - new Date(a.date));
-            
-            if (userRecords.length === 0) {
-                recordsList.innerHTML = '<p style="color: #666;">尚無記錄數據。</p>';
-            } else {
-                recordsList.innerHTML = userRecords.map(record => `
-                    <div class="record-item">
-                        <div class="record-actions">
-                            <button class="btn btn-small btn-danger" onclick="deleteRecord(${record.id})">🗑️</button>
-                        </div>
-                        <div class="record-date">${record.date}</div>
-                        <div class="record-data">
-                            ${record.weight ? `⚖️ 體重: ${record.weight}kg` : ''}
-                            ${record.bmi ? ` | 📊 BMI: ${record.bmi}` : ''}
-                            ${record.bodyFat ? ` | 🧈 體脂肪: ${record.bodyFat}%` : ''}
-                            ${record.muscleMass ? ` | 💪 肌肉量: ${record.muscleMass}kg` : ''}
-                            ${record.boneMass ? ` | 🦴 骨量: ${record.boneMass}kg` : ''}
-                            ${record.bodyAge ? ` | 🎂 身體年齡: ${record.bodyAge}歲` : ''}
-                            ${record.metabolism ? ` | 🔥 代謝: ${record.metabolism}kcal` : ''}
-                            ${record.visceralFat ? ` | 🫀 內臟脂肪: ${record.visceralFat}` : ''}
-                            ${record.bodyWater ? ` | 💧 身體水分率: ${record.bodyWater}%` : ''}
-                        </div>
+                    <div class="record-date">${record.date}</div>
+                    <div class="record-data">
+                        ${record.weight ? `⚖️ 體重: ${record.weight}kg` : ''}
+                        ${record.bmi ? ` | 📊 BMI: ${record.bmi}` : ''}
+                        ${record.bodyFat ? ` | 🧈 體脂肪: ${record.bodyFat}%` : ''}
+                        ${record.muscleMass ? ` | 💪 肌肉量: ${record.muscleMass}kg` : ''}
+                        ${record.boneMass ? ` | 🦴 骨量: ${record.boneMass}kg` : ''}
+                        ${record.bodyAge ? ` | 🎂 身體年齡: ${record.bodyAge}歲` : ''}
+                        ${record.metabolism ? ` | 🔥 代謝: ${record.metabolism}kcal` : ''}
+                        ${record.visceralFat ? ` | 🫀 內臟脂肪: ${record.visceralFat}` : ''}
+                        ${record.bodyWater ? ` | 💧 身體水分率: ${record.bodyWater}%` : ''}
                     </div>
-                `).join('');
-            }
-            
-            recordsSection.style.display = recordsSection.style.display === 'none' ? 'block' : 'none';
+                </div>
+            `).join('');
         }
-        
-        // 刪除記錄
-        function deleteRecord(recordId) {
-            if (confirm('確定要刪除此記錄？')) {
-                records = records.filter(r => r.id !== recordId);
-                showRecords(); // 重新渲染記錄列表
-            }
+
+        recordsSection.style.display = recordsSection.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function deleteRecord(recordId) {
+        if (confirm('確定要刪除此記錄？')) {
+            records = records.filter(r => r.id !== recordId);
+            saveData();
+            showRecords();
         }
-        
-        // 初始化
-        document.addEventListener('DOMContentLoaded', function() {
-            // 設置今天的日期為默認值
-            document.getElementById('record-date').value = new Date().toISOString().split('T')[0];
-            
-            // 初始化數據
-            filteredUsers = users;
-            updateStats();
-            renderUserList();
-        });
-    </script>
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        loadData();
+        document.getElementById('record-date').value = new Date().toISOString().split('T')[0];
+        filteredUsers = users;
+        updateStats();
+        renderUserList();
+    });
+</script>
+
 </body>
 </html>
